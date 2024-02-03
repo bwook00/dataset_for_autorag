@@ -1,6 +1,6 @@
 import os
 import pathlib
-import uuid
+
 from copy import deepcopy
 from datetime import datetime
 
@@ -18,7 +18,7 @@ def asqa():
     dataset['retrieval_gt'], dataset['answer_gt'] = zip(*dataset.apply(__split_content_answer, axis=1))
     dataset = dataset.dropna(ignore_index=True)
 
-    qid = dataset['sample_id'].tolist()[:500]
+    qid = dataset['sample_id'].tolist()
     query = dataset['ambiguous_question'].tolist()[:500]
     generation_gt = dataset['answer_gt'].tolist()[:500]
 
@@ -26,17 +26,17 @@ def asqa():
     sample_retrieval_gt = deepcopy(information)
     retrieval_gt = sample_retrieval_gt.apply(__make_retrieval_gt, axis=1).tolist()
     contents = information.apply(__make_contents, axis=1).tolist()
+    doc_id = [query_id + '_' + str(i) for i, query_id in enumerate(qid)]
 
-    qa_data = pd.DataFrame({'qid': qid,
+    qa_data = pd.DataFrame({'qid': qid[:500],
                             'query': query,
                             'generation_gt': generation_gt,
                             'retrieval_gt': retrieval_gt[:500]
                             })
 
-    corpus_data = pd.DataFrame({'retrieval_gt': retrieval_gt,
+    corpus_data = pd.DataFrame({'doc_id': doc_id,
                                 'contents': contents
                                 })
-
 
     metadata_dict = {'last_modified_datetime': datetime.now()}
     corpus_data['metadata'] = [metadata_dict for _ in range(len(corpus_data))]
