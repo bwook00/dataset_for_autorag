@@ -1,5 +1,6 @@
 import os
 import pathlib
+from datetime import datetime
 
 import pandas as pd
 from datasets import load_dataset
@@ -23,7 +24,12 @@ def eli5():
     # column name change
     qa_data = qa_data.rename(columns={'query_id': 'qid', 'question': 'query',
                                       'goldenAnswer': 'generation_gt', 'doc_id': 'retrieval_gt'})
-    real_corpus_data = real_corpus_data.rename(columns={'id': 'metadata', 'document': 'contents'})
+    real_corpus_data = real_corpus_data.rename(columns={'document': 'contents'})
+
+    real_corpus_data = real_corpus_data.drop(columns=['id'])
+
+    metadata_dict = {'last_modified_datetime': datetime.now()}
+    real_corpus_data['metadata'] = [metadata_dict for _ in range(len(real_corpus_data))]
 
     assert len(qa_data) == 1000
     assert len(real_corpus_data) == 2000
@@ -33,8 +39,8 @@ def eli5():
     project_dir = os.path.join(root_dir, "eli5_project")
 
     # save qa data and corpus data
-    qa_data.to_parquet(os.path.join(project_dir, "qa.parquet"), index=False)
-    real_corpus_data.to_parquet(os.path.join(project_dir, "corpus.parquet"), index=False)
+    qa_data.to_parquet(os.path.join(project_dir, "eli5_qa.parquet"), index=False)
+    real_corpus_data.to_parquet(os.path.join(project_dir, "eli5_corpus.parquet"), index=False)
 
 
 if __name__ == '__main__':
