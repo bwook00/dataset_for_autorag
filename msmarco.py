@@ -13,9 +13,9 @@ def msmarco():
 
     dataset = load_dataset(file_path, 'v1.1')['test'].to_pandas()
 
-    qid = dataset['query_id'].tolist()[:1000]
-    query = dataset['query'].tolist()[:1000]
-    generation_gt = dataset['answers'].tolist()[:1000]
+    qid = dataset['query_id'].tolist()
+    query = dataset['query'].tolist()
+    generation_gt = dataset['answers'].tolist()
 
     make_result = pd.concat(
         [dataset['query_id'], json_normalize(dataset['passages'])],
@@ -28,8 +28,20 @@ def msmarco():
     qa_data = pd.DataFrame({'qid': qid,
                             'query': query,
                             'generation_gt': generation_gt,
-                            'retrieval_gt': retrieval_gt[:1000]
+                            'retrieval_gt': retrieval_gt
                             })
+
+    # Remove rows where 'list_column' is an empty list
+    qa_data = qa_data[qa_data['generation_gt'].apply(lambda x: len(x) > 0)]
+    qa_data = qa_data[qa_data['retrieval_gt'].apply(lambda x: len(x) > 0)]
+
+    qa_data = qa_data.head(1000)
+
+    # [1,2], [3] -> [[1],[2]], [[3]]
+    retrieval_gt_list = qa_data['retrieval_gt'].tolist()
+    output_list = [[[item] for item in sublist] if isinstance(sublist, list) and all(
+        isinstance(elem, str) and "_" in elem for elem in sublist) else sublist for sublist in retrieval_gt_list]
+    qa_data['retrieval_gt'] = output_list
 
     doc_id_list = list(doc_id)
     contents_list = list(contents)
@@ -40,7 +52,7 @@ def msmarco():
                                 'contents': flattened_contents
                                 })
 
-    retrieval_gt_list = qa_data['retrieval_gt'].tolist()
+    # [[1],[2]], [[3]] -> [1,2,3]
     flattened_retrieval_gt = [item for sublist in retrieval_gt_list for item in sublist]
 
     real_corpus_data = pd.concat([
@@ -56,8 +68,8 @@ def msmarco():
     project_dir = os.path.join(root_dir, "msmarco_project")
 
     # save qa data and corpus data
-    qa_data.to_parquet(os.path.join(project_dir, "msmarco_qa.parquet"), index=False)
-    real_corpus_data.to_parquet(os.path.join(project_dir, "msmarco_corpus.parquet"), index=False)
+    qa_data.to_parquet(os.path.join(project_dir, "qa.parquet"), index=False)
+    real_corpus_data.to_parquet(os.path.join(project_dir, "corpus.parquet"), index=False)
 
 
 def __make_passages_and_retrieval_gt(row):

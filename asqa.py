@@ -26,6 +26,9 @@ def asqa():
     sample_retrieval_gt = deepcopy(information)
     retrieval_gt = sample_retrieval_gt.apply(__make_retrieval_gt, axis=1).tolist()
     contents = information.apply(__make_contents, axis=1).tolist()
+    first_contents_list = contents[0]
+
+    first_contents = [', '.join(map(str, [sublist for sublist in first_contents_list]))]
     doc_id = [query_id + '_' + str(i) for i, query_id in enumerate(qid)]
 
     qa_data = pd.DataFrame({'qid': qid[:500],
@@ -34,9 +37,20 @@ def asqa():
                             'retrieval_gt': retrieval_gt[:500]
                             })
 
+    # Remove rows where 'list_column' is an empty list
+    qa_data = qa_data[qa_data['generation_gt'].apply(lambda x: len(x) > 0)]
+    qa_data = qa_data[qa_data['retrieval_gt'].apply(lambda x: len(x) > 0)]
+
+    # [1,2], [3] -> [[1],[2]], [[3]]
+    retrieval_gt_list = qa_data['retrieval_gt'].tolist()
+    output_list = [[[item] for item in sublist] if isinstance(sublist, list) and all(
+        isinstance(elem, str) and "_" in elem for elem in sublist) else sublist for sublist in retrieval_gt_list]
+    qa_data['retrieval_gt'] = output_list
+
     corpus_data = pd.DataFrame({'doc_id': doc_id,
                                 'contents': contents
                                 })
+    # corpus_data['contents'] = [', '.join(x) for x in corpus_data['contents']]
 
     metadata_dict = {'last_modified_datetime': datetime.now()}
     corpus_data['metadata'] = [metadata_dict for _ in range(len(corpus_data))]

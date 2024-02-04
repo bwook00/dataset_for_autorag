@@ -11,6 +11,8 @@ def eli5():
     qa_data = load_dataset(file_path + "-qa")['train'].to_pandas()
     corpus_data = load_dataset(file_path + "-document")['train'].to_pandas()
 
+    qa_data = qa_data.dropna()
+
     qa_data = qa_data[:1000]
 
     # make real corpus data
@@ -21,9 +23,13 @@ def eli5():
         corpus_data[~corpus_data['doc_id'].isin(doc_id_list)][:1000]
     ], ignore_index=True)
 
-    # column name change
-    qa_data = qa_data.rename(columns={'query_id': 'qid', 'question': 'query',
-                                      'goldenAnswer': 'generation_gt', 'doc_id': 'retrieval_gt'})
+    qa_data.rename(columns={'query_id': 'qid', 'question': 'query',
+                            'goldenAnswer': 'generation_gt', 'doc_id': 'retrieval_gt'}, inplace=True)
+
+    # Using apply with a lambda function to avoid explicit for-loops for restructuring.
+    qa_data['retrieval_gt'] = qa_data['retrieval_gt'].apply(lambda x: [[x]])
+    qa_data['generation_gt'] = qa_data['generation_gt'].apply(lambda x: [x])
+
     real_corpus_data = real_corpus_data.rename(columns={'document': 'contents'})
 
     real_corpus_data = real_corpus_data.drop(columns=['id'])
@@ -39,8 +45,8 @@ def eli5():
     project_dir = os.path.join(root_dir, "eli5_project")
 
     # save qa data and corpus data
-    qa_data.to_parquet(os.path.join(project_dir, "eli5_qa.parquet"), index=False)
-    real_corpus_data.to_parquet(os.path.join(project_dir, "eli5_corpus.parquet"), index=False)
+    qa_data.to_parquet(os.path.join(project_dir, "qa.parquet"), index=False)
+    real_corpus_data.to_parquet(os.path.join(project_dir, "corpus.parquet"), index=False)
 
 
 if __name__ == '__main__':
